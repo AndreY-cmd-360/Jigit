@@ -10,32 +10,31 @@ struct ContentView: View {
     
     var body: some View{
         NavigationStack{
-            formField(title: "Username", text: $viewModel.userName, FocusState: $focusState, focusField: .username, validationMessage: validationMessages[focusState], isValid: viewModel.isValidName, isSecure: false)
+            formField(title: "Username", text: $viewModel.userName, FocusState: $focusState, focusField: .username, validationMessage: validationMessages[.username], isValid: viewModel.isValidName, isSecure: false)
             
-            formField(title: "Email", text: $viewModel.userEmail, FocusState: $focusState, focusField: .email, validationMessage: validationMessages[focusState], isValid: viewModel.isValidEmail, isSecure: false)
+            formField(title: "Email", text: $viewModel.userEmail, FocusState: $focusState, focusField: .email, validationMessage: validationMessages[.email], isValid: viewModel.isValidEmail, isSecure: false)
             
-            formField(title: "Password", text: $viewModel.userPassword, FocusState: $focusState, focusField: .password, validationMessage: validationMessages[focusState], isValid: viewModel.isValidPass, isSecure: false)
+            formField(title: "Password", text: $viewModel.userPassword, FocusState: $focusState, focusField: .password, validationMessage: validationMessages[.password], isValid: viewModel.isValidPass, isSecure: true)
             
-            formField(title: "Repeat password", text: $viewModel.userRepeatedPassword, FocusState: $focusState, focusField: .passwordRepeat, validationMessage: validationMessages[focusState], isValid: viewModel.isValidRepeat, isSecure: false)
+            formField(title: "Repeat password", text: $viewModel.userRepeatedPassword, FocusState: $focusState, focusField: .passwordRepeat, validationMessage: validationMessages[.passwordRepeat], isValid: viewModel.isValidRepeat, isSecure: true)
             
             buttonField
+        }.navigationDestination(isPresented: $button){
+            Text("Successfully logged in")
         }
-            .onSubmit {
-                if focusState == .username {
-                        focusState = .email
-                        }else if focusState == .email {
-                            focusState = .password
-                        }else if focusState == .password {
-                            focusState = .passwordRepeat
-                        }else {
-                            focusState = nil
-                        }
-                                    
+        .onSubmit {
+            if focusState == .username {
+                    focusState = .email
+            }else if focusState == .email {
+                    focusState = .password
+            }else if focusState == .password {
+                    focusState = .passwordRepeat
+            }else {
+                    focusState = nil
                 }
-            .navigationDestination(isPresented: $button, destination: {
-                Text("Successfully sighned in")
-            })
-            }
+                                
+        }
+    }
     
     private func formField(
         title: String,
@@ -75,16 +74,12 @@ struct ContentView: View {
                             }
                         }
                 }
+                
                 if let message = validationMessage {
-                    let words = message.split { !$0.isLetter && !$0.isNumber }
-
-                    
-                    if words.contains(where: { $0.caseInsensitiveCompare(title) == .orderedSame }){
                         Text(message)
                             .foregroundColor(.red)
                             .background(Color.pink.opacity(0.3).frame(height: 60).cornerRadius(6.0))
                             .padding()
-                    }
                 }
             }
         }
