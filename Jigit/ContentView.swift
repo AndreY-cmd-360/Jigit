@@ -3,152 +3,107 @@ import Foundation
 import Combine
 
 struct ContentView: View {
-    enum FocusField{
-        case username, email, password, passwordRepeat
-    }
-    
-    @FocusState private var focusField: FocusField?
-    
+    @State var validationMessages: [FocusField?: String] = [:]
+    @FocusState var focusState: FocusField?
     @StateObject var viewModel = SignUpViewModel()
-    
     @State var button = false
     
-    @State private var showInvalidUsernameMessage = false
-    @State private var showInvalidEmailMessage = false
-    @State private var showInvalidPasswordMessage = false
-    @State private var showInvalidRepeatMessage = false
-    
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                
-                nameField
-                
-                emailField
-                
-                passwordField
-                
-                repeatPasswordField
-                
-                buttonField
-            }.navigationDestination(isPresented: $button){
-                Text("Successfully logged in")
-            }
+    var body: some View{
+        NavigationStack{
+            formField(title: "Username", text: $viewModel.userName, FocusState: $focusState, focusField: .username, validationMessage: validationMessages[focusState], isValid: viewModel.isValidName, isSecure: false)
+            
+            formField(title: "Email", text: $viewModel.userEmail, FocusState: $focusState, focusField: .email, validationMessage: validationMessages[focusState], isValid: viewModel.isValidEmail, isSecure: false)
+            
+            formField(title: "Password", text: $viewModel.userPassword, FocusState: $focusState, focusField: .password, validationMessage: validationMessages[focusState], isValid: viewModel.isValidPass, isSecure: false)
+            
+            formField(title: "Repeat password", text: $viewModel.userRepeatedPassword, FocusState: $focusState, focusField: .passwordRepeat, validationMessage: validationMessages[focusState], isValid: viewModel.isValidRepeat, isSecure: false)
+            
+            buttonField
+        }
             .onSubmit {
-                if focusField == .username {
-                    focusField = .email
-                }else if focusField == .email {
-                    focusField = .password
-                }else if focusField == .password {
-                    focusField = .passwordRepeat
-                }else {
-                    focusField = nil
+                if focusState == .username {
+                        focusState = .email
+                        }else if focusState == .email {
+                            focusState = .password
+                        }else if focusState == .password {
+                            focusState = .passwordRepeat
+                        }else {
+                            focusState = nil
+                        }
+                                    
                 }
-                    
+            .navigationDestination(isPresented: $button, destination: {
+                Text("Successfully sighned in")
+            })
             }
-            .padding()
-        }
-    }
     
-    private var nameField: some View {
-        VStack{
-            TextField("Username", text: $viewModel.userName)
-                .focused($focusField, equals: .username)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-                .onSubmit {
-                    if !viewModel.isValidName {
-                        showInvalidUsernameMessage = true
-                    } else {
-                        showInvalidUsernameMessage = false
-                    }
-                }
-
-                if showInvalidUsernameMessage{
-                    Text("Invalid username")
-                        .foregroundColor(.red)
-                        .background(Color.pink.opacity(0.3).frame(width: 300, height: 60).cornerRadius(6.0))
+    private func formField(
+        title: String,
+        text: Binding<String>,
+        FocusState: FocusState<FocusField?>.Binding,
+        focusField: FocusField,
+        validationMessage: String?,
+        isValid: Bool,
+        isSecure: Bool
+    ) -> some View{
+        
+        NavigationStack{
+            VStack(spacing: 12){
+                if isSecure{
+                    SecureField(title, text: text)
+                        .focused(FocusState, equals: focusField)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding()
-            }
-        }
-    }
-    
-    private var emailField: some View {
-        VStack(spacing: 12) {
-            TextField("Email", text: $viewModel.userEmail)
-                .focused($focusField, equals: .email)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-                .onSubmit() {
-                    if !viewModel.isValidEmail{
-                        showInvalidEmailMessage = true
-                    } else{
-                        showInvalidEmailMessage = false
-                    }
+                        .onSubmit {
+                            if !isValid{
+                                validationMessages[focusField] = "Invalid \(title.lowercased())"
+                            } else{
+                                validationMessages[focusField] = nil
+                            }
+                        }
+                    
+                } else{
+                    TextField(title, text: text)
+                        .focused(FocusState, equals: focusField)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding()
+                        .onSubmit {
+                            if !isValid{
+                                validationMessages[focusField] = "Invalid \(title.lowercased())"
+                            } else{
+                                validationMessages[focusField] = nil
+                            }
+                        }
                 }
-            if showInvalidEmailMessage{
-                Text("Invalid email")
-                    .foregroundColor(.red)
-                    .background(Color.pink.opacity(0.3).frame(width: 300, height: 60).cornerRadius(6.0))
-                    .padding()
-            }
-        }
-    }
+                if let message = validationMessage {
+                    let words = message.split { !$0.isLetter && !$0.isNumber }
 
-    private var passwordField: some View {
-        VStack(spacing: 12) {
-            SecureField("Password", text: $viewModel.userPassword)
-                .focused($focusField, equals: .password)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-                .onSubmit {
-                    if !viewModel.isValidPass{
-                        showInvalidPasswordMessage = true
-                    } else{
-                        showInvalidPasswordMessage = false
+                    
+                    if words.contains(where: { $0.caseInsensitiveCompare(title) == .orderedSame }){
+                        Text(message)
+                            .foregroundColor(.red)
+                            .background(Color.pink.opacity(0.3).frame(height: 60).cornerRadius(6.0))
+                            .padding()
                     }
                 }
-            if showInvalidPasswordMessage{
-                Text("The password must contain a combination of uppercase and lowercase letter, number and a special character")
-                    .foregroundColor(.red)
-                    .background(Color.pink.opacity(0.3).frame(width: 360, height: 80).cornerRadius(6.0))
-                    .padding()
             }
         }
     }
     
-    private var repeatPasswordField: some View {
-        VStack(spacing: 12) {
-            SecureField("Repeat password", text: $viewModel.userRepeatedPassword)
-                .focused($focusField, equals: .passwordRepeat)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-                .onSubmit() {
-                    if !viewModel.isValidRepeat{
-                        showInvalidRepeatMessage = true
-                    } else{
-                        showInvalidRepeatMessage = false
-                    }
-                }
-                .on
-            if  showInvalidEmailMessage{
-                Text("Passwords don't match")
-                    .foregroundColor(.red)
-                    .padding()
-            }
+    private var buttonField: some View{
+        Button("Sign In"){
+            button = true
         }
-    }
-    
-    private var buttonField: some View {
-            Button("Sign In") {
-                button = true
-            }
             .padding()
             .foregroundColor(.white)
             .background(viewModel.isFormValid ? Color.blue : Color.gray)
             .cornerRadius(4.0)
             .disabled(!viewModel.isFormValid)
     }
+}
+
+enum FocusField {
+    case username, email, password, passwordRepeat
 }
 
 final class SignUpViewModel: ObservableObject {
@@ -191,51 +146,54 @@ final class SignUpViewModel: ObservableObject {
 
 // MARK: - Setup validations
 private extension SignUpViewModel {
-    
-  var isUserNameValidPublisher: AnyPublisher<Bool, Never> {
-    $userName
-      .map { name in
-          return name.count >= 5
-      }
-      .eraseToAnyPublisher()
-  }
-  
-  var isUserEmailValidPublisher: AnyPublisher<Bool, Never> {
-    $userEmail
-      .map { email in
-          let emailPredicate = NSPredicate(format:"SELF MATCHES %@", "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}")
-          return emailPredicate.evaluate(with: email)
-      }
-      .eraseToAnyPublisher()
-  }
-  
-  var isPasswordValidPublisher: AnyPublisher<Bool, Never> {
-    $userPassword
-      .map { password in
-          let regex = try! NSRegularExpression(pattern: "^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,}$", options: [])
-          return regex.firstMatch(in: password, options: [], range: NSRange(location: 0, length: password.utf16.count)) != nil
-      }
-      .eraseToAnyPublisher()
-  }
-  
-  var passwordMatchesPublisher: AnyPublisher<Bool, Never> {
-    Publishers.CombineLatest($userPassword, $userRepeatedPassword)
-      .map { password, repeated in
-          return password == repeated
-      }
-      .eraseToAnyPublisher()
-  }
-  
-    var isSignUpFormValid: AnyPublisher<Bool, Never> {
-        Publishers.CombineLatest4(isUserNameValidPublisher, isUserEmailValidPublisher, isPasswordValidPublisher, passwordMatchesPublisher)
-            .map { a, b, c, d in
-                return a && b && c && d
+    var isUserNameValidPublisher: AnyPublisher<Bool, Never> {
+        $userName
+            .map { name in
+                return name.count >= 5
             }
             .eraseToAnyPublisher()
+    }
+    
+    var isUserEmailValidPublisher: AnyPublisher<Bool, Never> {
+        $userEmail
+            .map { email in
+                let emailPredicate = NSPredicate(format: "SELF MATCHES %@", "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}")
+                return emailPredicate.evaluate(with: email)
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    var isPasswordValidPublisher: AnyPublisher<Bool, Never> {
+        $userPassword
+            .map { password in
+                let regex = try! NSRegularExpression(pattern: "^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,}$", options: [])
+                return regex.firstMatch(in: password, options: [], range: NSRange(location: 0, length: password.utf16.count)) != nil
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    var passwordMatchesPublisher: AnyPublisher<Bool, Never> {
+        Publishers.CombineLatest($userPassword, $userRepeatedPassword)
+            .map { password, repeated in
+                return password == repeated
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    var isSignUpFormValid: AnyPublisher<Bool, Never> {
+        Publishers.CombineLatest4(
+            isUserNameValidPublisher,
+            isUserEmailValidPublisher,
+            isPasswordValidPublisher,
+            passwordMatchesPublisher
+        )
+        .map { a, b, c, d in
+            return a && b && c && d
+        }
+        .eraseToAnyPublisher()
     }
 }
 
 #Preview {
-//    SignUpView(viewModel: SignUpViewModel())
     ContentView()
 }
